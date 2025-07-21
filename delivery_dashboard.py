@@ -5,7 +5,7 @@ Interactive dashboard for Daily / Weekly / Monthly / Quarterly / Half-Yearly
 delivery percentage with optional Close‑price overlay.
 
 Author  : Your Name
-Last Mod: 2025‑07‑11
+Last Mod: 2025‑07‑21
 """
 
 from io import StringIO
@@ -20,6 +20,19 @@ st.set_page_config(page_title="Delivery % Dashboard", layout="wide")
 st.title("📊 Delivery Percentage Dashboard")
 
 # ------------------------------------------------------------------#
+# 📚 Table of Contents (Sidebar Links)
+# ------------------------------------------------------------------#
+st.sidebar.markdown("## 📚 Table of Contents")
+st.sidebar.markdown("[1. Summary Metrics](#summary-metrics)")
+st.sidebar.markdown("[2. Daily Delivery % Table](#daily-delivery-table)")
+st.sidebar.markdown("[3. Weekly Delivery % Table](#weekly-delivery-table)")
+st.sidebar.markdown("[4. Monthly Delivery % Table](#monthly-delivery-table)")
+st.sidebar.markdown("[5. Quarterly Delivery % Table](#quarterly-delivery-table)")
+st.sidebar.markdown("[6. Half-Yearly Delivery % Table](#half-yearly-delivery-table)")
+st.sidebar.markdown("[7. Yearly Delivery % Table](#yearly-delivery-table)")
+
+
+# ------------------------------------------------------------------#
 # 2. File upload (support multiple CSVs)
 # ------------------------------------------------------------------#
 uploaded_files = st.sidebar.file_uploader(
@@ -32,7 +45,6 @@ if not uploaded_files:
 # ------------------------------------------------------------------#
 # 3. Data loader & cleaner
 # ------------------------------------------------------------------#
-
 @st.cache_data(show_spinner=False)
 def load_and_clean(raw_csv: str) -> pd.DataFrame:
     df = pd.read_csv(StringIO(raw_csv))
@@ -113,18 +125,13 @@ df = (
 # ------------------------------------------------------------------#
 # 5. Sidebar filters
 # ------------------------------------------------------------------#
-symbols = df["symbol"].unique().tolist()
-selected_symbols = st.sidebar.multiselect("🔍 Symbols", symbols, default=symbols)
-df = df[df["symbol"].isin(selected_symbols)]
-
 spike_thr = st.sidebar.slider("🚨 Spike threshold (%)", 0.0, 100.0, 75.0, step=0.5)
-
 net_value_thr = st.sidebar.slider("💰 Net Value Spike (₹ Cr)", 0.0, 50.0, 3.0, step=0.5)
-
 
 # ------------------------------------------------------------------#
 # 6. Summary metrics
 # ------------------------------------------------------------------#
+st.markdown('<a name="summary-metrics"></a>', unsafe_allow_html=True)
 st.subheader("📌 Summary Metrics")
 col1, col2, col3 = st.columns(3)
 col1.metric("Average Delivery %", f"{df['delivery_pct'].mean():.2f}")
@@ -140,8 +147,9 @@ if not spikes.empty:
     st.dataframe(spikes[["date", "symbol", "delivery_pct"]])
 
 # ------------------------------------------------------------------#
-# 8. Daily Delivery % Table (quantities in Millions, Net in ₹ Crores)
+# 8. Daily Delivery % Table
 # ------------------------------------------------------------------#
+st.markdown('<a name="daily-delivery-table"></a>', unsafe_allow_html=True)
 st.subheader("📆 Daily Delivery % (Quantities in Millions, Net Value in ₹ Crores)")
 
 df = df.sort_values(["symbol", "date"])
@@ -155,7 +163,6 @@ daily_disp["net_value_crore"] = (daily_disp["net_value"] / 1e7).round(2)
 daily_disp["traded_qty_chg_%"] = daily_disp["traded_qty_chg_%"].round(2)
 daily_disp["deliverable_qty_chg_%"] = daily_disp["deliverable_qty_chg_%"].round(2)
 
-# Select columns to display
 daily_columns = [
     "date",
     "symbol",
@@ -167,7 +174,6 @@ daily_columns = [
     "deliverable_qty_chg_%",
 ]
 
-# Highlight if net_value_crore > threshold from sidebar
 def highlight_net_value(val):
     if pd.notna(val) and val > net_value_thr:
         return "background-color: #ffe6e6; font-weight: bold"
@@ -180,8 +186,9 @@ styled_df = daily_disp[daily_columns].style.applymap(
 st.dataframe(styled_df, use_container_width=True)
 
 # ------------------------------------------------------------------#
-# 9. Weekly Aggregation (Millions)
+# 9. Weekly Aggregation
 # ------------------------------------------------------------------#
+st.markdown('<a name="weekly-delivery-table"></a>', unsafe_allow_html=True)
 st.subheader("📅 Weekly Delivery % (Quantities in Millions, Net Value in ₹ Crores)")
 
 df["week"] = df["date"].dt.to_period("W").apply(lambda r: r.start_time)
@@ -216,10 +223,14 @@ wk_chart = (
 )
 st.altair_chart(wk_chart, use_container_width=True)
 
+
 # ------------------------------------------------------------------#
 # 10. Monthly Aggregation (Millions)
 # ------------------------------------------------------------------#
+
+st.markdown('<a name="monthly-delivery-table"></a>', unsafe_allow_html=True)
 st.subheader("📅 Monthly Delivery % (Quantities in Millions, Net Value in ₹ Crores)")
+
 
 df["month"] = df["date"].dt.to_period("M").apply(lambda r: r.start_time)
 monthly = (
@@ -256,6 +267,7 @@ st.altair_chart(mo_chart, use_container_width=True)
 # ------------------------------------------------------------------#
 # 11. Quarterly Aggregation (Millions)
 # ------------------------------------------------------------------#
+st.markdown('<a name="quarterly-delivery-table"></a>', unsafe_allow_html=True)
 st.subheader("📊 Quarterly Delivery % (Quantities in Millions, Net Value in ₹ Crores)")
 
 df["quarter"] = df["date"].dt.to_period("Q").apply(lambda r: r.start_time)
@@ -287,6 +299,7 @@ st.altair_chart(qt_chart, use_container_width=True)
 # ------------------------------------------------------------------#
 # 12. Half-Yearly Aggregation (Millions)
 # ------------------------------------------------------------------#
+st.markdown('<a name="half-yearly-delivery-table"></a>', unsafe_allow_html=True)
 st.subheader("📈 Half-Yearly Delivery % (Quantities in Millions, Net Value in ₹ Crores)")
 
 def get_half_year(d):
@@ -326,6 +339,7 @@ st.altair_chart(half_chart, use_container_width=True)
 # ------------------------------------------------------------------#
 # 13. Yearly Aggregation (Millions)
 # ------------------------------------------------------------------#
+st.markdown('<a name="yearly-delivery-table"></a>', unsafe_allow_html=True)
 st.subheader("📅 Yearly Delivery % (Quantities in Millions, Net Value in ₹ Crores)")
 
 df["year"] = df["date"].dt.to_period("Y").apply(lambda r: r.start_time)
