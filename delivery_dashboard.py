@@ -4,8 +4,8 @@ delivery_dashboard.py
 Interactive dashboard for Daily / Weekly / Monthly / Quarterly / Half-Yearly
 delivery percentage with optional Close‑price overlay.
 
-Author  : Your Name
-Last Mod: 2025‑07‑21
+Author  : Yash Goyal
+Last Mod: 2025‑07‑21 (updated with date range avg delivery %)
 """
 
 from io import StringIO
@@ -123,6 +123,27 @@ df = (
 )
 
 # ------------------------------------------------------------------#
+# New: Date range selector for filtered average delivery %
+# ------------------------------------------------------------------#
+min_date = df["date"].min()
+max_date = df["date"].max()
+
+date_range = st.sidebar.date_input(
+    "📅 Select Date Range for Avg Delivery %",
+    value=(min_date, max_date),
+    min_value=min_date,
+    max_value=max_date,
+)
+
+if isinstance(date_range, tuple) and len(date_range) == 2:
+    start_date, end_date = date_range
+else:
+    start_date, end_date = min_date, max_date
+
+df_filtered = df[(df["date"] >= pd.to_datetime(start_date)) & (df["date"] <= pd.to_datetime(end_date))]
+avg_delivery_filtered = df_filtered["delivery_pct"].mean() if not df_filtered.empty else float('nan')
+
+# ------------------------------------------------------------------#
 # 5. Sidebar filters
 # ------------------------------------------------------------------#
 spike_thr = st.sidebar.slider("🚨 Spike threshold (%)", 0.0, 100.0, 75.0, step=0.5)
@@ -133,10 +154,15 @@ net_value_thr = st.sidebar.slider("💰 Net Value Spike (₹ Cr)", 0.0, 50.0, 3.
 # ------------------------------------------------------------------#
 st.markdown('<a name="summary-metrics"></a>', unsafe_allow_html=True)
 st.subheader("📌 Summary Metrics")
-col1, col2, col3 = st.columns(3)
-col1.metric("Average Delivery %", f"{df['delivery_pct'].mean():.2f}")
-col2.metric("Max Delivery %", f"{df['delivery_pct'].max():.2f}")
-col3.metric("Total Days", int(df["date"].nunique()))
+col1, col2, col3, col4 = st.columns(4)
+
+col1.metric("Average Delivery % (Overall)", f"{df['delivery_pct'].mean():.2f}")
+col2.metric(
+    f"Average Delivery % ({start_date} to {end_date})",
+    f"{avg_delivery_filtered:.2f}" if not pd.isna(avg_delivery_filtered) else "N/A"
+)
+col3.metric("Max Delivery %", f"{df['delivery_pct'].max():.2f}")
+col4.metric("Total Days", int(df["date"].nunique()))
 
 # ------------------------------------------------------------------#
 # 7. Spike alerts
@@ -358,3 +384,23 @@ year_disp = year_disp[
 ]
 styled_year = year_disp.style.applymap(highlight_net_value, subset=["net_value_crore"])
 st.dataframe(styled_year, use_container_width=True)
+min_date = df["date"].min()
+max_date = df["date"].max()
+
+date_range = st.sidebar.date_input(
+    "📅 Select Date Range for Avg Delivery %",
+    value=(min_date, max_date),
+    min_value=min_date,
+    max_value=max_date,
+    key="avg_delivery_date_range"   # Unique key to avoid duplicate element ID error
+)
+
+
+if isinstance(date_range, tuple) and len(date_range) == 2:
+    start_date, end_date = date_range
+else:
+    start_date, end_date = min_date, max_date
+
+df_filtered = df[(df["date"] >= pd.to_datetime(start_date)) & (df["date"] <= pd.to_datetime(end_date))]
+avg_delivery_filtered = df_filtered["delivery_pct"].mean() if not df_filtered.empty else float('nan')
+
